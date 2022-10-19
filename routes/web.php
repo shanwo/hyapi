@@ -16,10 +16,9 @@ use Illuminate\Support\Facades\Route;
 Route::redirect('/', 'https://shanwo.cc');
 
 //首页
-Route::prefix('home')->group(function () {
-    Route::get('hot', 'HomeController@hot');
-    Route::get('recent', 'HomeController@recent');
-    Route::get('info', 'HomeController@info');
+Route::prefix('venue')->group(function () {
+    Route::get('lists', 'VenueController@lists');
+    Route::get('images', 'VenueController@images');
 });
 //支付
 Route::prefix('swpay')->group(function () {
