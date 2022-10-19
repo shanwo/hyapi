@@ -13,13 +13,11 @@ use App\Models\UserAttributeModel;
 class OrderService extends Service
 {
     protected $orderModel;
-    protected $userAttributeModel;
 
     public function __construct()
     {
         parent::__construct();
         $this->orderModel = new OrderModel();
-        $this->userAttributeModel = new UserAttributeModel();
     }
 
     public function info($where)
@@ -47,31 +45,7 @@ class OrderService extends Service
         ];
         $this->orderModel->insertGetId($insert);
         $info = $this->userAttributeModel->where(['user_id' => $user['id']])->first();
-        $expire = time() + $this->lengthTime($pay['type']);
-        if ($info['type'] == Service::USER_VIP) {
-            $expire = strtotime($info['expired_at']);
-            if (time() < $expire) {
-                $expire = $expire + $this->lengthTime($pay['type']);
-            }
-            if ($pay['type'] < $info['vip_type']) {
-                $update['vip_type'] = $pay['type'];
-                if (in_array($pay['type'], [1, 2, 3, 4])) {
-                    $pages = (Service::PAGE_MAX - $pay['type']) + Service::PAGE_MIN;
-                    $update['pages'] = $pages;
-                }
-            }
-        } else {
-            $update['vip_type'] = $pay['type'];
-            if (in_array($pay['type'], [1, 2, 3, 4])) {
-                $pages = (Service::PAGE_MAX - $pay['type']) + Service::PAGE_MIN;
-                if ($info['pages'] < $pages) $update['pages'] = $pages;
-            }
-        }
-        $update['type'] = Service::USER_VIP;
-        $update['expired_at'] = date('Y-m-d H:i:s', $expire);
         $this->userAttributeModel->where(['user_id' => $user['id']])->update($update);
-        $this->setTag('pay_vip', $user['id'], 'Y');
-        $this->setTag('vip_type', $user['id'], $pay['type']);
         return $this->redis::SET('user_attribute:' . $user['id'], json_encode(array_merge($user, $update), JSON_UNESCAPED_UNICODE));
     }
 
