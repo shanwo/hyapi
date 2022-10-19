@@ -11,6 +11,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class OrderModel extends Model
 {
-    protected $table = 'sw_order';
+    protected $table = 'hy_order';
     public $timestamps = false;
 }
