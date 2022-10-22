@@ -23,22 +23,16 @@ class PayController extends Controller
     public function send()
     {
         $this->validate([
-            'id'      => 'required|integer|gt:0',
-            'type'    => 'required|alpha_num|in:NATIVE,JSAPI',
-            'channel' => 'filled|integer|gte:0',
+            'id'      => 'required|array',
         ], [
             'id'      => 'ID',
-            'channel' => '渠道',
         ]);
         if ($this->msg) {
             return $this->returnApi();
         }
         $id = $this->request->input('id');
-        $channel = $this->request->input('channel', 0);
-        $pay = $this->service->redis::HGET('pay_channel:' . $channel, $id);
         $user = $this->request->user();
-        $type = $this->request->input('type');
-        $data = $this->payService->send($pay, $user, $type);
+        $data = $this->payService->send($id, $user);
         if (!empty($data['msg'])) {
             $this->msg = $data['msg'];
             return $this->returnApi();

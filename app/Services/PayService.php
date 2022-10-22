@@ -19,32 +19,25 @@ class PayService extends Service
         $this->orderService = new OrderService();
     }
 
-    public function send($pay, $user, $type = 'NATIVE')
+    public function send($id, $user)
     {
-        if (!$pay) return ['msg' => '支付渠道不存在'];
-        $info = json_decode($pay, true);
         $order_sn = dechex(time()) . rand(10, 99) . mb_substr(sprintf("%04d", $user->id), -4) . rand(10, 99);
-        $total_fee = $info['original_price'];
         if ($info['activity_price']) $total_fee = $info['activity_price'];
-        $url = 'v3/pay/transactions/native';
+        $url = 'v3/pay/partner/transactions/jsapi';
         $body = [
             'appid'        => $this->payment->getConfig()->get('app_id'),
             'mchid'        => $this->payment->getConfig()->get('mch_id'),
-            'description'  => $info['name'] . ' - 会员购买',
+            'description'  => '滑呀 - 照片购买',
             'out_trade_no' => $order_sn,
             'notify_url'   => $this->payment->getConfig()->get('notify_url'),
             'amount'       => [
                 'total'    => $total_fee,
                 'currency' => 'CNY'
             ],
+            'payer'         =>[
+                'openid' => $third['official']['open_id'] ?? ''
+            ]
         ];
-        if ($type === 'JSAPI') {
-            $url = 'v3/pay/transactions/jsapi';
-            $third = array_column($user->third, 'open_id', 'source');
-            $body['payer'] = [
-                'openid' => $third['official'] ?? ''
-            ];
-        }
         try {
             $data = $this->payment->getClient()->postJson($url, $body)->toArray();
             $data['order_sn'] = $order_sn;
