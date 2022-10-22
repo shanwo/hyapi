@@ -22,23 +22,46 @@ class VenueController extends Controller
         return $this->returnApi($data);
     }
 
-    public function images()
+    public function day()
     {
         $this->validate([
-            'venue_id' => 'required|integer|gte:1',
-            'day'      => 'required|date_format:m-d',
-            'hour'     => 'filled|date_format:H',
+            'venue_id' => 'required|integer|gt:0|exists:hy_venue,id',
             'page'     => 'required|integer|gt:0',
         ], [
             'venue_id' => '场地ID',
-            'day'      => '日期',
-            'hour'     => '时间',
             'page'     => '页码',
         ]);
         if ($this->msg) {
             return $this->returnApi();
         }
-        $data = $this->venueService->images($this->request);
+        $data = $this->venueService->day($this->request);
+        if (!empty($data['msg'])) {
+            $this->msg = $data['msg'];
+            return $this->returnApi();
+        }
+        $this->code = 200;
+        return $this->returnApi($data);
+    }
+
+    public function hour()
+    {
+        $this->validate([
+            'venue_id' => 'required|integer|gt:0|exists:hy_venue,id',
+            'day'      => 'required|date_format:m-d',
+            'hour'     => 'required|date_format:H',
+        ], [
+            'venue_id' => '场地ID',
+            'day'      => '日期',
+            'hour'     => '时间',
+        ]);
+        if ($this->msg) {
+            return $this->returnApi();
+        }
+        $data = $this->venueService->hour($this->request);
+        if (!empty($data['msg'])) {
+            $this->msg = $data['msg'];
+            return $this->returnApi();
+        }
         $this->code = 200;
         return $this->returnApi($data);
     }

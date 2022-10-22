@@ -18,7 +18,8 @@ Route::redirect('/', 'https://shanwo.cc');
 //首页
 Route::prefix('venue')->group(function () {
     Route::get('lists', 'VenueController@lists');
-    Route::get('images', 'VenueController@images');
+    Route::get('day', 'VenueController@day');
+    Route::get('hour', 'VenueController@hour');
 });
 //支付
 Route::prefix('swpay')->group(function () {
