@@ -15,26 +15,32 @@ use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', 'https://shanwo.cc');
 
-//首页
-Route::prefix('venue')->group(function () {
-    Route::get('lists', 'VenueController@lists');
-    Route::get('day', 'VenueController@day');
-    Route::get('hour', 'VenueController@hour');
-});
-//支付
-Route::prefix('swpay')->group(function () {
-    Route::get('lists', 'PayController@lists');
-    Route::post('send', 'PayController@send');
-    Route::post('result', 'PayController@result');
-    Route::post('payment', 'PayController@payment');
-    Route::post('refund', 'PayController@refund');
-});
-//测试接口
-Route::prefix('test')->group(function () {
-    Route::get('initial', 'TestController@initial');
-    Route::get('check', 'TestController@check');
-    Route::get('info', 'TestController@info');
-    Route::get('all', 'TestController@all');
-    Route::get('image', 'TestController@image');
+Route::prefix('hy')->group(function () {
+    //首页
+    Route::prefix('venue')->group(function () {
+        Route::get('lists', 'VenueController@lists');
+        Route::get('day', 'VenueController@day');
+        Route::get('hour', 'VenueController@hour');
+    });
+    //支付
+    Route::prefix('pay')->group(function () {
+        Route::post('send', 'PayController@send');
+        Route::post('result', 'PayController@result');
+        Route::post('payment', 'PayController@payment');
+        Route::post('refund', 'PayController@refund');
+    });
+    //订单
+    Route::prefix('order')->group(function () {
+        Route::get('lists', 'OrderController@lists');
+        Route::get('info', 'OrderController@info');
+    });
+    //测试接口
+    Route::prefix('test')->group(function () {
+        Route::get('initial', 'TestController@initial');
+        Route::get('check', 'TestController@check');
+        Route::get('info', 'TestController@info');
+        Route::get('all', 'TestController@all');
+        Route::get('image', 'TestController@image');
+    });
 });
 
