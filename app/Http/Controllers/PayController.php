@@ -20,21 +20,6 @@ class PayController extends Controller
         $this->payService = new PayService();
     }
 
-    public function lists()
-    {
-        $this->validate([
-            'channel' => 'filled|integer|gt:0',
-        ], [
-            'channel' => '渠道',
-        ]);
-        if ($this->msg) {
-            return $this->returnApi();
-        }
-        $data['lists'] = $this->payService->lists($this->request);
-        $this->code = 200;
-        return $this->returnApi($data);
-    }
-
     public function send()
     {
         $this->validate([
@@ -104,7 +89,7 @@ class PayController extends Controller
             'resource'      => '通知数据',
         ]);
         if ($this->msg) {
-            return $this->returnApi();
+//            return $this->returnApi();
         }
         return $this->payService->payment($this->request);
     }
