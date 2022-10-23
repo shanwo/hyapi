@@ -48,7 +48,7 @@ class VenueController extends Controller
         $this->validate([
             'venue_id' => 'required|integer|gt:0|exists:hy_venue,id',
             'day'      => 'required|date_format:m-d',
-            'hour'     => 'required|date_format:H',
+            'hour'     => 'nullable|date_format:H',
         ], [
             'venue_id' => '场地ID',
             'day'      => '日期',

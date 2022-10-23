@@ -24,10 +24,10 @@ class PayController extends Controller
     {
         $this->validate([
             'venue_id' => 'required|integer|gt:0|exists:hy_venue,id',
-            'id'      => 'required|array',
+            'ids'       => 'required|array',
         ], [
             'venue_id' => '场地ID',
-            'id'      => 'ID',
+            'ids'       => 'ID',
         ]);
         if ($this->msg) {
             return $this->returnApi();
