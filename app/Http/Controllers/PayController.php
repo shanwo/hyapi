@@ -23,16 +23,16 @@ class PayController extends Controller
     public function send()
     {
         $this->validate([
+            'venue_id' => 'required|integer|gt:0|exists:hy_venue,id',
             'id'      => 'required|array',
         ], [
+            'venue_id' => '场地ID',
             'id'      => 'ID',
         ]);
         if ($this->msg) {
             return $this->returnApi();
         }
-        $id = $this->request->input('id');
-        $user = $this->request->user();
-        $data = $this->payService->send($id, $user);
+        $data = $this->payService->send($this->request);
         if (!empty($data['msg'])) {
             $this->msg = $data['msg'];
             return $this->returnApi();
