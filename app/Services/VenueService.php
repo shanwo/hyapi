@@ -64,6 +64,7 @@ class VenueService extends Service
                 'total' => $total,
                 'images'=> $image
             ];
+            $data['total'] = $this->redis::LLEN('venue_days:' . $venueId);
         }
         return $data;
     }
@@ -73,7 +74,7 @@ class VenueService extends Service
         $venueId = $request->input('venue_id');
         $day = $request->input('day');
         $hour = $request->input('hour');
-        $res = $this->redis::SRANDMEMBER('venue_images:' . $venueId . ':' . $day . ':' . $hour, $this->size);
+        $res = $this->redis::SRANDMEMBER('venue_images:' . $venueId . ':' . $day . ':' . $hour, 10);
         foreach ($res as $k => $v){
             $data['lists'][] = json_decode($v,true);
         }
