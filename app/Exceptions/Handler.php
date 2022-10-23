@@ -63,7 +63,7 @@ class Handler extends ExceptionHandler
                 'msg'     => '请求类型不匹配',
                 'uuid'    => Uuid::uuid6(),
             ];
-            $this->sendEmail($result);
+//            $this->sendEmail($result);
             return response()->json($result);
         });
         $this->renderable(function (NotFoundHttpException $e, $request) {
@@ -74,7 +74,7 @@ class Handler extends ExceptionHandler
                 'msg'     => '请求地址未开放',
                 'uuid'    => Uuid::uuid6(),
             ];
-            $this->sendEmail($result);
+//            $this->sendEmail($result);
             return response()->json($result);
         });
         $this->renderable(function (QueryException $e, $request) {
