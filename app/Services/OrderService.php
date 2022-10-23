@@ -44,16 +44,7 @@ class OrderService extends Service
             'snapshot'       => json_encode($request, JSON_UNESCAPED_UNICODE),
         ];
         $this->orderModel->insertGetId($insert);
-        $info = $this->userAttributeModel->where(['user_id' => $user['id']])->first();
-        $this->userAttributeModel->where(['user_id' => $user['id']])->update($update);
-        return $this->redis::SET('user_attribute:' . $user['id'], json_encode(array_merge($user, $update), JSON_UNESCAPED_UNICODE));
-    }
-
-    public function edit($expire, $user)
-    {
-        $update['expired_at'] = date('Y-m-d H:i:s', $expire);
-        $this->userAttributeModel->where(['user_id' => $user['id']])->update($update);
-        return $this->redis::SET('user_attribute:' . $user['id'], json_encode(array_merge($user, $update), JSON_UNESCAPED_UNICODE));
+        return $this->redis::SET('user_attribute:' . $user['id'], json_encode($user, JSON_UNESCAPED_UNICODE));
     }
 
     public function status($id, $status)
