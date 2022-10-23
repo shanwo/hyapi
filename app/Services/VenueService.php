@@ -73,16 +73,14 @@ class VenueService extends Service
     {
         $venueId = $request->input('venue_id');
         $day = $request->input('day');
-        $hour = $request->input('hour',0);
-        if(!$hour){
-            $hour = $this->redis::LINDEX('venue_hours:' . $venueId . ':' . $day, 0);
-        }
+        $hour = $request->input('hour', 0);
+        if (!$hour) $hour = $this->redis::LINDEX('venue_hours:' . $venueId . ':' . $day, 0);
         $data['lists'] = [];
         $data['hours'] = $this->redis::LRANGE('venue_hours:' . $venueId . ':' . $day, 0, -1);
         $data['now'] = $hour;
         $res = $this->redis::SRANDMEMBER('venue_images:' . $venueId . ':' . $day . ':' . $hour, 10);
-        foreach ($res as $k => $v){
-            $data['lists'][] = json_decode($v,true);
+        foreach ($res as $k => $v) {
+            $data['lists'][] = json_decode($v, true);
         }
         return $data;
     }
