@@ -16,43 +16,17 @@ class Service
     const ORDER_SUCCESS   = 30;
     const ORDER_FAIL      = 40;
     const ORDER_REFUND    = 50;
-    const USER_ENABLE     = 1;
-    const USER_VIP        = 2;
-    const USER_DISABLE    = 3;
     const DELETE_YES      = -1;
     const DELETE_NO       = 1;
     const ENABLE          = 1;
     const DISABLE         = -1;
     public $redis;
     public $page = 1;
-    public $size = 10;
+    public $size = 5;
     public $oneDay = 86400;
 
     public function __construct()
     {
         $this->redis = new Redis();
-    }
-
-    public function configInfo($name)
-    {
-        $data = [];
-        $config = $this->redis::GET('config:' . $name);
-        if ($config) $data = json_decode($config, true);
-        $data['name'] = $name;
-        return $data;
-    }
-
-    public function hGetCache($key, $sort, $sids)
-    {
-        $data = [];
-        if ($sort) {
-            $data = $this->redis::HGETALL($key . ':' . $sort);
-        } else {
-            foreach ($sids as $k => $v) {
-                $tmp = $this->redis::HGETALL($key . ':' . $v);
-                if ($tmp) $data = array_merge_recursive($data, $tmp);
-            }
-        }
-        return $data;
     }
 }
