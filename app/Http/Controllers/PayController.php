@@ -24,10 +24,10 @@ class PayController extends Controller
     {
         $this->validate([
             'venue_id' => 'required|integer|gt:0|exists:hy_venue,id',
-            'ids'       => 'required|array',
+            'ids'      => 'required|array',
         ], [
             'venue_id' => '场地ID',
-            'ids'       => 'ID',
+            'ids'      => 'ID',
         ]);
         if ($this->msg) {
             return $this->returnApi();
@@ -83,7 +83,7 @@ class PayController extends Controller
             'resource'      => '通知数据',
         ]);
         if ($this->msg) {
-//            return $this->returnApi();
+            return $this->returnApi();
         }
         return $this->payService->payment($this->request);
     }

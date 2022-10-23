@@ -24,33 +24,33 @@ class PayService extends Service
 
     public function send($request)
     {
-        $ids = $request->input('id');
+        $ids = $request->input('ids');
         $vid = $request->input('venue_id');
+        $pay = $this->redis::HGET('venues_pay', $vid);
+        $pay = json_decode($pay, true);
         $uid = $request->user()->id;
-        $pay = $this->redis::HGET('venues_pay',$vid);
-        $pay = json_decode($pay,true);
-        dump($pay);die;
         $order_sn = dechex(time()) . rand(10, 99) . mb_substr(sprintf("%04d", $uid), -4) . rand(10, 99);
+        //https://pay.weixin.qq.com/wiki/doc/apiv3_partner/terms_definition/chapter1_1.shtml
         $body = [
-            'sp_appid'        => $pay['sp_appid'],
-            'sp_mchid'        => $pay['sp_mchid'],
-            'sub_appid'        => $pay['sub_appid'],
-            'sub_mchid'        => $pay['sub_mchid'],
-            'description'  => '滑呀 - 照片购买',
+            'sp_appid'     => $pay['sp_appid'],
+            'sp_mchid'     => $pay['sp_mchid'],
+            //'sub_appid'    => $pay['sub_appid'],                    //需要是sub_openid所属的应用
+            'sub_mchid'    => $pay['sub_mchid'],
+            'description'  => $pay['description'] . ' - 照片购买',
             'out_trade_no' => $order_sn,
             'notify_url'   => $this->payment->getConfig()->get('notify_url'),
             'amount'       => [
-                'total'    => bcmul(count($ids),20,2)
+                'total' => bcmul(count($ids), $pay['price'], 2)
             ],
-            'payer'         =>[
-                'sp_openid' => $third['official']['open_id'] ?? '',
-                'sub_openid' => $third['official']['open_id'] ?? ''
+            'payer'        => [
+                'sp_openid' => $third['wxapp']['open_id'] ?? '',   //用户在服务商appid下的唯一标识。下单前需获取到用户的Openid
+                //'sub_openid' => $third['wxapp']['open_id'] ?? ''    //用户在子商户appid下的唯一标识。若传sub_openid，那sub_appid必填。下单前需获取到用户的Openid
             ]
         ];
         try {
             $data = $this->payment->getClient()->postJson('v3/pay/partner/transactions/jsapi', $body)->toArray();
             $data['order_sn'] = $order_sn;
-            $this->redis::SETEX('pay_order:' . $order_sn, $this->oneDay / 24, json_encode(['pay' => $info, 'user_id' => $uid], JSON_UNESCAPED_UNICODE));
+            $this->redis::SETEX('pay_order:' . $order_sn, $this->oneDay / 24, json_encode(['pay' => $body, 'user_id' => $uid], JSON_UNESCAPED_UNICODE));
             return $data;
         } catch (\Exception $error) {
             return ['msg' => $error->getMessage()];
@@ -60,8 +60,14 @@ class PayService extends Service
     public function result($order_sn)
     {
         try {
-            return $this->payment->getClient()->get('v3/pay/transactions/out-trade-no/' . $order_sn, [
-                'query' => ['mchid' => $this->payment->getConfig()->get('mch_id')]
+            $order = $this->orderService->where(['order_sn' => $order_sn])->first();
+            $pay = $this->redis::HGET('venues_pay', $order['venue_id']);
+            $pay = json_decode($pay, true);
+            return $this->payment->getClient()->get('v3/pay/partner/transactions/out-trade-no/' . $order_sn, [
+                'query' => [
+                    'sp_mchid'  => $pay['sp_mchid'],
+                    'sub_mchid' => $pay['sub_mchid'],
+                ]
             ])->toArray();
         } catch (\Exception $error) {
             return ['msg' => $error->getMessage()];
@@ -73,8 +79,11 @@ class PayService extends Service
         $this->redis::SETEX('callback:payment:' . LARAVEL_START . ':request', $this->oneDay / 2, json_encode($request->all()));
         try {
             return $this->payment->getServer()->handlePaid(function ($message, $fail) {
-                $data = $this->payment->getClient()->get('v3/pay/transactions/out-trade-no/' . $message['out_trade_no'], [
-                    'query' => ['mchid' => $this->payment->getConfig()->get('mch_id')]
+                $data = $this->payment->getClient()->get('v3/pay/partner/transactions/out-trade-no/' . $message['out_trade_no'], [
+                    'query' => [
+                        'sp_mchid'  => $message['sp_mchid'],
+                        'sub_mchid' => $message['sub_mchid']
+                    ]
                 ])->toArray();
                 $res = $this->orderService->info(['order_sn' => $message['out_trade_no']]);
                 $this->redis::SETEX('callback:payment:' . LARAVEL_START . ':data', $this->oneDay / 2, json_encode($data));
@@ -87,18 +96,19 @@ class PayService extends Service
                             $this->orderService->add($data, $info);
                         } else {
                             $this->payment->getClient()->postJson('v3/refund/domestic/refunds', [
+                                'sub_mchid'      => $data['sub_mchid'],
                                 'transaction_id' => $data['transaction_id'],     //商户订单号
                                 'out_refund_no'  => $data['out_trade_no'],       //商户退款单号
                                 'reason'         => '订单支付超时',                 //退款原因
-                                'notify_url'     => env('APP_URL') . '/pay/refund',
+                                'notify_url'     => env('APP_URL') . 'hy/pay/refund',
                                 'amount'         => [
                                     'refund'   => $data['amount']['payer_total'],//退款金额
                                     'total'    => $data['amount']['total'],      //原订单金额
                                     'currency' => 'CNY'
                                 ]
                             ])->toArray();
-                            $this->payment->getClient()->postJson('v3/pay/transactions/out-trade-no/' . $data['out_trade_no'] . '/close', [
-                                ['mchid' => $this->payment->getConfig()->get('mch_id')]
+                            $this->payment->getClient()->postJson('v3/pay/partner/transactions/out-trade-no/' . $data['out_trade_no'] . '/close', [
+                                'sp_mchid' => $message['sp_mchid'], 'sub_mchid' => $message['sub_mchid']
                             ])->toArray();
                         }
                         break;
