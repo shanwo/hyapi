@@ -58,8 +58,7 @@ class PayService extends Service
                 'original_ids' => json_encode($ids),
                 'price'        => $pay['price'],
                 'pay_price'    => $body['amount']['total'],
-                'status'       => self::ORDER_CREATE,
-                'snapshot'     => json_encode($request, JSON_UNESCAPED_UNICODE),
+                'status'       => self::ORDER_CREATE
             ];
             $data['order_id'] = $this->orderModel->insertGetId($insert);
             return $data;
@@ -104,6 +103,7 @@ class PayService extends Service
                             'third_sn'   => $data['transaction_id'],
                             'status'     => OrderService::ORDER_SUCCESS,
                             'payated_at' => date('Y-m-d H:i:s', strtotime($data['success_time'])),
+                            'snapshot'   => json_encode($message, JSON_UNESCAPED_UNICODE),
                         ]);
                     } else {
                         $this->payment->getClient()->postJson('v3/refund/domestic/refunds', [
