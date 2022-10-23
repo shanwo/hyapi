@@ -12,7 +12,7 @@ class PayService extends Service
     public function __construct()
     {
         parent::__construct();
-        $config = $this->redis::GET('config:payment');
+        $config = $this->redis::GET('config:partner');
         if ($config) {
             $config = json_decode($config, true);
             $config['private_key'] = env('PRIVATE_KEY');
@@ -27,26 +27,28 @@ class PayService extends Service
         $ids = $request->input('id');
         $vid = $request->input('venue_id');
         $uid = $request->user()->id;
-        $config = $this->redis::HGET('venues_pay',$vid);
+        $pay = $this->redis::HGET('venues_pay',$vid);
+        $pay = json_decode($pay,true);
+        dump($pay);die;
         $order_sn = dechex(time()) . rand(10, 99) . mb_substr(sprintf("%04d", $uid), -4) . rand(10, 99);
-        if ($info['activity_price']) $total_fee = $info['activity_price'];
-        $url = 'v3/pay/partner/transactions/jsapi';
         $body = [
-            'appid'        => $this->payment->getConfig()->get('app_id'),
-            'mchid'        => $this->payment->getConfig()->get('mch_id'),
+            'sp_appid'        => $pay['sp_appid'],
+            'sp_mchid'        => $pay['sp_mchid'],
+            'sub_appid'        => $pay['sub_appid'],
+            'sub_mchid'        => $pay['sub_mchid'],
             'description'  => '滑呀 - 照片购买',
             'out_trade_no' => $order_sn,
             'notify_url'   => $this->payment->getConfig()->get('notify_url'),
             'amount'       => [
-                'total'    => bcmul(count($ids),20,2),
-                'currency' => 'CNY'
+                'total'    => bcmul(count($ids),20,2)
             ],
             'payer'         =>[
-                'openid' => $third['official']['open_id'] ?? ''
+                'sp_openid' => $third['official']['open_id'] ?? '',
+                'sub_openid' => $third['official']['open_id'] ?? ''
             ]
         ];
         try {
-            $data = $this->payment->getClient()->postJson($url, $body)->toArray();
+            $data = $this->payment->getClient()->postJson('v3/pay/partner/transactions/jsapi', $body)->toArray();
             $data['order_sn'] = $order_sn;
             $this->redis::SETEX('pay_order:' . $order_sn, $this->oneDay / 24, json_encode(['pay' => $info, 'user_id' => $uid], JSON_UNESCAPED_UNICODE));
             return $data;
