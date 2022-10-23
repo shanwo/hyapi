@@ -12,16 +12,23 @@ class PayService extends Service
     public function __construct()
     {
         parent::__construct();
-        $config = $this->configInfo('payment');
-        $config['private_key'] = env('PRIVATE_KEY');
-        $config['certificate'] = env('CERTIFICATE');
-        $this->payment = new Application($config);
+        $config = $this->redis::GET('config:payment');
+        if ($config) {
+            $config = json_decode($config, true);
+            $config['private_key'] = env('PRIVATE_KEY');
+            $config['certificate'] = env('CERTIFICATE');
+            $this->payment = new Application($config);
+        }
         $this->orderService = new OrderService();
     }
 
-    public function send($id, $user)
+    public function send($request)
     {
-        $order_sn = dechex(time()) . rand(10, 99) . mb_substr(sprintf("%04d", $user->id), -4) . rand(10, 99);
+        $ids = $request->input('id');
+        $vid = $request->input('venue_id');
+        $uid = $request->user()->id;
+        $config = $this->redis::HGET('venues_pay',$vid);
+        $order_sn = dechex(time()) . rand(10, 99) . mb_substr(sprintf("%04d", $uid), -4) . rand(10, 99);
         if ($info['activity_price']) $total_fee = $info['activity_price'];
         $url = 'v3/pay/partner/transactions/jsapi';
         $body = [
@@ -31,7 +38,7 @@ class PayService extends Service
             'out_trade_no' => $order_sn,
             'notify_url'   => $this->payment->getConfig()->get('notify_url'),
             'amount'       => [
-                'total'    => $total_fee,
+                'total'    => bcmul(count($ids),20,2),
                 'currency' => 'CNY'
             ],
             'payer'         =>[
@@ -41,9 +48,7 @@ class PayService extends Service
         try {
             $data = $this->payment->getClient()->postJson($url, $body)->toArray();
             $data['order_sn'] = $order_sn;
-            $attribute = $this->redis::GET('user_attribute:' . $user->id);
-            $attribute = json_decode($attribute, true);
-            $this->redis::SETEX('pay_order:' . $order_sn, $this->oneDay / 24, json_encode(['pay' => $info, 'user' => $attribute], JSON_UNESCAPED_UNICODE));
+            $this->redis::SETEX('pay_order:' . $order_sn, $this->oneDay / 24, json_encode(['pay' => $info, 'user_id' => $uid], JSON_UNESCAPED_UNICODE));
             return $data;
         } catch (\Exception $error) {
             return ['msg' => $error->getMessage()];
@@ -135,18 +140,6 @@ class PayService extends Service
             return $this->payment->getServer()->handleRefunded(function ($message, $reqInfo, $fail) {
                 $res = $this->orderService->info(['order_sn' => $message['out_trade_no']]);
                 $pay = $this->redis::HGET('pay_channel:' . $res['channel'], $res['pay_id']);
-                $pay = json_decode($pay, true);
-                $user = (new UserAttributeService())->info($res['user_id']);
-                if ($user['type'] != OrderService::USER_VIP) {
-                    return $fail('非会员状态不可发起退款');
-                }
-                $expired = strtotime($user['expired_at']);
-                $endTime = time() + $this->lengthTime($pay['type']) - 60;
-                if ($expired < $endTime) {
-                    return $fail('会员到期时间小于购买时间，不可发起退款');
-                }
-                $expired = $expired - $this->lengthTime($pay['type']);
-                $this->orderService->edit($expired, $user);
                 $this->orderService->status($res['id'], OrderService::ORDER_REFUND);
                 return true;
             });
