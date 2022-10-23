@@ -8,19 +8,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\PageService;
 use App\Services\Service;
 use Illuminate\Http\Request;
 
 class TestController extends Controller
 {
-    protected $pageService;
 
     public function __construct(Request $request)
     {
         parent::__construct($request);
         $this->service = new Service();
-        $this->pageService = new PageService();
     }
 
     public function check()
