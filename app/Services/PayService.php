@@ -54,13 +54,15 @@ class PayService extends Service
             $insert = [
                 'venue_id'     => $vid,
                 'user_id'      => $uid,
-                'order_sn'     => $body['out_trade_no'],
+                'order_sn'     => $order_sn,
                 'original_ids' => json_encode($ids),
                 'price'        => $pay['price'],
                 'pay_price'    => $body['amount']['total'],
                 'status'       => self::ORDER_CREATE
             ];
+            $this->orderModel->venue($vid);
             $data['order_id'] = $this->orderModel->insertGetId($insert);
+            $this->redis::HSET('venues_order', $order_sn, $vid);
             return $data;
         } catch (\Exception $error) {
             return ['msg' => $error->getMessage()];
@@ -70,6 +72,8 @@ class PayService extends Service
     public function result($order_sn)
     {
         try {
+            $vid = $this->redis::HGET('venues_order', $order_sn);
+            $this->orderModel->venue($vid);
             $order = $this->orderModel->where(['order_sn' => $order_sn])->first();
             $pay = $this->redis::HGET('venues_pay', $order['venue_id']);
             $pay = json_decode($pay, true);
@@ -97,6 +101,8 @@ class PayService extends Service
                 ])->toArray();
                 $this->redis::SETEX('callback:payment:' . LARAVEL_START . ':data', $this->oneDay / 2, json_encode($data));
                 if ($data['trade_state'] == 'SUCCESS') {
+                    $vid = $this->redis::HGET('venues_order', $message['out_trade_no']);
+                    $this->orderModel->venue($vid);
                     $info = $this->orderModel->where(['order_sn' => $message['out_trade_no']])->first();
                     if ($info && $info['status'] == OrderService::ORDER_CREATE) {
                         $this->orderModel->whereKey($info['id'])->update([
@@ -136,6 +142,8 @@ class PayService extends Service
         $this->redis::SETEX('callback:refund:' . LARAVEL_START . ':request', $this->oneDay / 2, json_encode($request->all()));
         try {
             return $this->payment->getServer()->handleRefunded(function ($message) {
+                $vid = $this->redis::HGET('venues_order', $message['out_trade_no']);
+                $this->orderModel->venue($vid);
                 $info = $this->orderModel->where(['order_sn' => $message['out_trade_no']])->first();
                 $this->orderModel->whereKey($info['id'])->update(['status' => OrderService::ORDER_REFUND]);
                 return true;
