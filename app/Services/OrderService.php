@@ -19,8 +19,17 @@ class OrderService extends Service
         $this->orderModel = new OrderModel();
     }
 
-    public function info($where)
+    public function lists($request,$uid)
     {
-        return $this->orderModel->where($where)->first();
+        $page = $request->input('page', $this->page);
+        $where[] = ['is_delete', '=', Service::DELETE_NO];
+        $data = $this->decorationModel->select('id', 'sort_id', 'name', 'image')->where($where)->get()->toArray();
+
+        return [];
+    }
+
+    public function info($request)
+    {
+        return $this->orderModel->where(['is_delete', '=', Service::DELETE_NO])->first();
     }
 }
