@@ -11,7 +11,7 @@ class OrderInfoModel extends Model
     protected $table = 'hy_order_info';
     public $timestamps = false;
 
-    public function user($uid)
+    public function table($uid)
     {
         $this->table = sprintf('hy_order_info%u', $uid % 10);
         if (!Schema::hasTable($this->table)) {

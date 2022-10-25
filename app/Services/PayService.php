@@ -114,7 +114,7 @@ class PayService extends Service
                         foreach ($images as $value){
                             //移动到永久路径
                         }
-                        $this->orderInfoModel->user($info['user_id']);
+                        $this->orderInfoModel->table($info['user_id']);
                         $order = [
                             'venue_id'=>$info['venue_id'],
                             'user_id'=>$info['user_id'],
