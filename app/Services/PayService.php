@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\OrderInfoModel;
 use App\Models\OrderModel;
+use App\Models\UploadModel;
 use EasyWeChat\Pay\Application;
 
 class PayService extends Service
@@ -108,15 +109,20 @@ class PayService extends Service
                             'payated_at' => date('Y-m-d H:i:s', strtotime($data['success_time'])),
                             'snapshot'   => json_encode($message, JSON_UNESCAPED_UNICODE),
                         ]);
-//                        $this->orderInfoModel->user($info['user_id']);
-//                        $order = [
-//                            'venue_id'=>$vid,
-//                            'user_id'=>$info['user_id'],
-//                            'order_sn'=>$message['out_trade_no'],
-//                            'original_ids'=>$info['original_ids'],
-//                            'url'=>''
-//                        ];
-//                        $this->orderInfoModel->insertGetId($order);
+                        $images = (new UploadModel())->select('name', 'original_url', 'thumbnail_url')
+                            ->whereIn('id',json_decode($info['original_ids']))->get()->toArray();
+                        foreach ($images as $value){
+                            //移动到永久路径
+                        }
+                        $this->orderInfoModel->user($info['user_id']);
+                        $order = [
+                            'venue_id'=>$info['venue_id'],
+                            'user_id'=>$info['user_id'],
+                            'order_sn'=>$message['out_trade_no'],
+                            'pay_price'=>$data['amount']['total'],
+                            'images'=>json_encode($images),
+                        ];
+                        $this->orderInfoModel->insertGetId($order);
                     } else {
                         $this->payment->getClient()->postJson('v3/refund/domestic/refunds', [
                             'sub_mchid'      => $data['sub_mchid'],
