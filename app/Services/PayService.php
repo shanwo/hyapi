@@ -123,6 +123,7 @@ class PayService extends Service
                             'images'    => json_encode($images),
                         ];
                         $this->orderInfoModel->insertGetId($order);
+                        $this->redis::DEL('order_info:' . $info['user_id']);
                     } else {
                         $this->payment->getClient()->postJson('v3/refund/domestic/refunds', [
                             'sub_mchid'      => $data['sub_mchid'],
