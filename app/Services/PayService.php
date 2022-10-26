@@ -111,6 +111,9 @@ class PayService extends Service
                         ]);
                         $images = (new UploadModel())->select('name', 'original_url', 'thumbnail_url')
                             ->whereIn('id', json_decode($info['original_ids']))->get()->toArray();
+                        foreach ($images as $value) {
+                            //移动到永久路径
+                        }
                         $this->orderInfoModel->table($info['user_id']);
                         $order = [
                             'venue_id'  => $info['venue_id'],
