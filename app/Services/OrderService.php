@@ -33,9 +33,4 @@ class OrderService extends Service
         }
         return $data;
     }
-
-    public function info($request)
-    {
-        return $this->orderInfoModel->where(['is_delete', '=', Service::DELETE_NO])->first();
-    }
 }
