@@ -110,17 +110,14 @@ class PayService extends Service
                             'snapshot'   => json_encode($message, JSON_UNESCAPED_UNICODE),
                         ]);
                         $images = (new UploadModel())->select('name', 'original_url', 'thumbnail_url')
-                            ->whereIn('id',json_decode($info['original_ids']))->get()->toArray();
-                        foreach ($images as $value){
-                            //移动到永久路径
-                        }
+                            ->whereIn('id', json_decode($info['original_ids']))->get()->toArray();
                         $this->orderInfoModel->table($info['user_id']);
                         $order = [
-                            'venue_id'=>$info['venue_id'],
-                            'user_id'=>$info['user_id'],
-                            'order_sn'=>$message['out_trade_no'],
-                            'pay_price'=>$data['amount']['total'],
-                            'images'=>json_encode($images),
+                            'venue_id'  => $info['venue_id'],
+                            'user_id'   => $info['user_id'],
+                            'order_sn'  => $message['out_trade_no'],
+                            'pay_price' => $data['amount']['total'],
+                            'images'    => json_encode($images),
                         ];
                         $this->orderInfoModel->insertGetId($order);
                     } else {
