@@ -7,29 +7,35 @@
 
 namespace App\Services;
 
-use App\Models\OrderModel;
+use App\Models\OrderInfoModel;
 
 class OrderService extends Service
 {
-    protected $orderModel;
+    protected $orderInfoModel;
 
     public function __construct()
     {
         parent::__construct();
-        $this->orderModel = new OrderModel();
+        $this->orderInfoModel = new OrderInfoModel();
     }
 
     public function lists($request,$uid)
     {
+        $this->orderInfoModel->table($uid);
         $page = $request->input('page', $this->page);
-        $where[] = ['is_delete', '=', Service::DELETE_NO];
-        $data = $this->decorationModel->select('id', 'sort_id', 'name', 'image')->where($where)->get()->toArray();
-
-        return [];
+        $where[] = ['user_id', '=', $uid];
+        $lists = $this->orderInfoModel->select('id', 'order_sn', 'pay_price', 'images')->where($where);
+        $data['page'] = $page;
+        $data['total'] = $lists->count();
+        $data['lists'] = $lists->orderBy('id', 'DESC')->forPage($page, $this->size)->get()->toArray();
+        foreach ($data['lists'] as $k => $v){
+            $data['lists'][$k]['images'] = json_decode($v['images'],true);
+        }
+        return $data;
     }
 
     public function info($request)
     {
-        return $this->orderModel->where(['is_delete', '=', Service::DELETE_NO])->first();
+        return $this->orderInfoModel->where(['is_delete', '=', Service::DELETE_NO])->first();
     }
 }

@@ -29,19 +29,4 @@ class OrderController extends Controller
         $this->code = 200;
         return $this->returnApi($data);
     }
-
-    public function info()
-    {
-        $this->validate([
-            'order_sn' => 'required|alpha_num|size:16',
-        ], [
-            'order_sn' => '订单编号',
-        ]);
-        if ($this->msg) {
-            return $this->returnApi();
-        }
-        $data = $this->orderService->info($this->request);
-        $this->code = 200;
-        return $this->returnApi($data);
-    }
 }
