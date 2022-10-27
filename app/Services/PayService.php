@@ -6,6 +6,7 @@ use App\Models\OrderInfoModel;
 use App\Models\OrderModel;
 use App\Models\UploadModel;
 use EasyWeChat\Pay\Application;
+use Qcloud\Cos\Client;
 
 class PayService extends Service
 {
@@ -111,17 +112,14 @@ class PayService extends Service
                         ]);
                         $images = (new UploadModel())->select('name', 'original_url', 'thumbnail_url')
                             ->whereIn('id', json_decode($info['original_ids']))->get()->toArray();
-                        foreach ($images as $value) {
-                            //移动到永久路径
-                        }
-                        $this->orderInfoModel->table($info['user_id']);
                         $order = [
                             'venue_id'  => $info['venue_id'],
                             'user_id'   => $info['user_id'],
                             'order_sn'  => $message['out_trade_no'],
                             'pay_price' => $data['amount']['total'],
-                            'images'    => json_encode($images),
+                            'images'    => json_encode($this->moveImage($images, $info)),
                         ];
+                        $this->orderInfoModel->table($info['user_id']);
                         $this->orderInfoModel->insertGetId($order);
                         $this->redis::DEL('order_info:' . $info['user_id']);
                     } else {
@@ -163,6 +161,41 @@ class PayService extends Service
             $this->redis::SETEX('callback:refund:' . LARAVEL_START . ':error', $this->oneDay / 2, $error->getMessage());
             return false;
         }
+    }
+
+    private function moveImage($images, $order)
+    {
+        $config = $this->redis::GET('config:oss');
+        $config = json_decode($config, true);
+        $oss = new Client([
+            'region'      => 'ap-beijing',
+            'schema'      => 'https',
+            'credentials' => [
+                'secretId'  => $config['app_id'],
+                'secretKey' => $config['secret'],
+            ]
+        ]);
+        $host = 'https://cdn.shanwo.cc/';
+        $res = [];
+        foreach ($images as $k => $v) {
+            $original = $oss->Copy($config['target_bucket'],
+                '/hy/retained/original/' . $order['order_sn'] . '/' . pathinfo($v['original_url'], PATHINFO_BASENAME),
+                ['Region' => 'ap-beijing', 'Bucket' => $config['original_bucket'],
+                 'Key'    => substr(parse_url($v['original_url'], PHP_URL_PATH), 1)]
+            );
+            $thumbnail = $oss->Copy($config['target_bucket'],
+                '/hy/retained/thumbnail/' . $order['order_sn'] . '/' . pathinfo($v['thumbnail_url'], PATHINFO_BASENAME),
+                ['Region' => 'ap-beijing', 'Bucket' => $config['original_bucket'],
+                 'Key'    => substr(parse_url($v['thumbnail_url'], PHP_URL_PATH), 1)]
+            );
+            $res[] = [
+                'name'          => $v['name'],
+                'original_url'  => $host . $original['Key'],
+                'thumbnail_url' => $host . $thumbnail['Key'],
+
+            ];
+        }
+        return $res;
     }
 
 }
