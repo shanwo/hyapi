@@ -95,7 +95,7 @@ class PayService extends Service
             return $this->payment->getServer()->handlePaid(function ($message, $fail) {
                 $data = $this->payment->getClient()->get('v3/pay/partner/transactions/out-trade-no/' . $message['out_trade_no'], [
                     'query' => [
-                        'sp_mchid'  => $message['sp_mchid'],
+                        'sp_mchid'  => $this->payment->getConfig()->get('mch_id'),
                         'sub_mchid' => $message['sub_mchid']
                     ]
                 ])->toArray();
@@ -135,7 +135,7 @@ class PayService extends Service
                             ]
                         ])->toArray();
                         $this->payment->getClient()->postJson('v3/pay/partner/transactions/out-trade-no/' . $data['out_trade_no'] . '/close', [
-                            'sp_mchid' => $message['sp_mchid'], 'sub_mchid' => $message['sub_mchid']
+                            'sp_mchid' => $this->payment->getConfig()->get('mch_id'), 'sub_mchid' => $message['sub_mchid']
                         ])->toArray();
                     }
                 }
