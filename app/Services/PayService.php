@@ -35,26 +35,25 @@ class PayService extends Service
         $pay = $this->redis::HGET('venues_pay', $vid);
         $pay = json_decode($pay, true);
         $uid = $request->user()->id;
+        $third = array_column($request->user()->third, 'open_id', 'source') ?? [];
         $order_sn = dechex(time()) . rand(10, 99) . mb_substr(sprintf("%04d", $uid), -4) . rand(10, 99);
-        //https://pay.weixin.qq.com/wiki/doc/apiv3_partner/terms_definition/chapter1_1.shtml
         $body = [
-            'sp_appid'     => $pay['sp_appid'],
-            'sp_mchid'     => $pay['sp_mchid'],
-            //'sub_appid'    => $pay['sub_appid'],                    //需要是sub_openid所属的应用
+            'sp_appid'     => $this->payment->getConfig()->get('app_id'),
+            'sp_mchid'     => $this->payment->getConfig()->get('mch_id'),
             'sub_mchid'    => $pay['sub_mchid'],
             'description'  => $pay['description'] . ' - 照片购买',
             'out_trade_no' => $order_sn,
             'notify_url'   => $this->payment->getConfig()->get('notify_url'),
             'amount'       => [
-                'total' => bcmul(count($ids), $pay['price'], 2)
+                'total' => (int)bcmul(count($ids), $pay['price'])
             ],
             'payer'        => [
-                'sp_openid' => $third['wxapp']['open_id'] ?? '',   //用户在服务商appid下的唯一标识。下单前需获取到用户的Openid
-                //'sub_openid' => $third['wxapp']['open_id'] ?? ''    //用户在子商户appid下的唯一标识。若传sub_openid，那sub_appid必填。下单前需获取到用户的Openid
+                'sp_openid' => $third['wxapp'] ?? '',   //用户在服务商appid下的唯一标识。下单前需获取到用户的Openid
             ]
         ];
         try {
-            $data = $this->payment->getClient()->postJson('v3/pay/partner/transactions/jsapi', $body)->toArray();
+            $prepay = $this->payment->getClient()->postJson('v3/pay/partner/transactions/jsapi', $body)->toArray();
+            $data = $this->payment->getUtils()->buildBridgeConfig($prepay['prepay_id'], $body['sp_appid']);
             $data['order_sn'] = $order_sn;
             $insert = [
                 'venue_id'     => $vid,
@@ -65,7 +64,7 @@ class PayService extends Service
                 'pay_price'    => $body['amount']['total'],
                 'status'       => self::ORDER_CREATE
             ];
-            $data['order_id'] = $this->orderModel->insertGetId($insert);
+            $this->orderModel->insertGetId($insert);
             return $data;
         } catch (\Exception $error) {
             return ['msg' => $error->getMessage()];
