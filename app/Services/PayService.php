@@ -164,9 +164,9 @@ class PayService extends Service
 
     private function moveImage($images, $order)
     {
-        $config = $this->redis::GET('config:oss');
+        $config = $this->redis::GET('config:cos');
         $config = json_decode($config, true);
-        $oss = new Client([
+        $cos = new Client([
             'region'      => 'ap-beijing',
             'schema'      => 'https',
             'credentials' => [
@@ -177,12 +177,12 @@ class PayService extends Service
         $host = 'https://cdn.shanwo.cc/';
         $res = [];
         foreach ($images as $k => $v) {
-            $original = $oss->Copy($config['target_bucket'],
+            $original = $cos->Copy($config['target_bucket'],
                 '/hy/retained/original/' . $order['order_sn'] . '/' . pathinfo($v['original_url'], PATHINFO_BASENAME),
                 ['Region' => 'ap-beijing', 'Bucket' => $config['original_bucket'],
                  'Key'    => substr(parse_url($v['original_url'], PHP_URL_PATH), 1)]
             );
-            $thumbnail = $oss->Copy($config['target_bucket'],
+            $thumbnail = $cos->Copy($config['target_bucket'],
                 '/hy/retained/thumbnail/' . $order['order_sn'] . '/' . pathinfo($v['thumbnail_url'], PATHINFO_BASENAME),
                 ['Region' => 'ap-beijing', 'Bucket' => $config['original_bucket'],
                  'Key'    => substr(parse_url($v['thumbnail_url'], PHP_URL_PATH), 1)]
