@@ -25,7 +25,7 @@ Route::prefix('hy')->group(function () {
     //支付
     Route::prefix('pay')->group(function () {
         Route::post('send', 'PayController@send');
-        Route::post('result', 'PayController@result');
+        Route::get('result', 'PayController@result');
         Route::post('payment', 'PayController@payment');
         Route::post('refund', 'PayController@refund');
     });
