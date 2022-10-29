@@ -79,7 +79,7 @@ class PayService extends Service
             $pay = json_decode($pay, true);
             return $this->payment->getClient()->get('v3/pay/partner/transactions/out-trade-no/' . $order_sn, [
                 'query' => [
-                    'sp_mchid'  => $pay['sp_mchid'],
+                    'sp_mchid'  => $this->payment->getConfig()->get('mch_id'),
                     'sub_mchid' => $pay['sub_mchid'],
                 ]
             ])->toArray();
