@@ -21,8 +21,8 @@ class OrderInfoModel extends Model
                 $table->unsignedInteger('venue_id')->default('0')->comment('场地ID');
                 $table->unsignedInteger('user_id')->default('0')->comment('用户ID')->index('idx_user');
                 $table->char('order_sn', 16)->default('')->comment('订单号')->unique('un_order');
-                $table->decimal('pay_price',4,2)->default('0')->comment('支付金额(分)');
-                $table->json('images')->comment('图片信息')->collation('utf8mb4_general_ci');
+                $table->decimal('pay_price',4,2)->default('0.00')->comment('支付金额(分)');
+                $table->json('images')->comment('图片信息');
                 $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate()->comment('更新时间');
                 $table->timestamp('created_at')->useCurrent()->comment('创建时间');
             });
