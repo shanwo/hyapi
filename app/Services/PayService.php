@@ -137,6 +137,7 @@ class PayService extends Service
                         $this->payment->getClient()->postJson('v3/pay/partner/transactions/out-trade-no/' . $data['out_trade_no'] . '/close', [
                             'sp_mchid' => $this->payment->getConfig()->get('mch_id'), 'sub_mchid' => $message['sub_mchid']
                         ])->toArray();
+                        $this->orderModel->whereKey($info['id'])->update(['status' => OrderService::ORDER_FAIL]);
                     }
                 }
                 return true;
