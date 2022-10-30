@@ -110,7 +110,7 @@ class PayService extends Service
                             'snapshot'   => json_encode($message, JSON_UNESCAPED_UNICODE),
                         ]);
                         $images = (new UploadModel())->select('name', 'original_url', 'thumbnail_url')
-                            ->whereIn('id', json_decode($info['original_ids']))->get()->toArray();
+                            ->whereIn('id', json_decode($info['original_ids'],true))->get()->toArray();
                         $order = [
                             'venue_id'  => $info['venue_id'],
                             'user_id'   => $info['user_id'],
