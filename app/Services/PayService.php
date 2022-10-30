@@ -32,7 +32,7 @@ class PayService extends Service
     {
         $ids = $request->input('ids');
         $vid = $request->input('venue_id');
-        $pay = $this->redis::HGET('venues_pay', $vid);
+        $pay = $this->redis::HGET('venues', $vid);
         $pay = json_decode($pay, true);
         $uid = $request->user()->id;
         $third = array_column($request->user()->third, 'open_id', 'source') ?? [];
@@ -41,7 +41,7 @@ class PayService extends Service
             'sp_appid'     => $this->payment->getConfig()->get('app_id'),
             'sp_mchid'     => $this->payment->getConfig()->get('mch_id'),
             'sub_mchid'    => $pay['sub_mchid'],
-            'description'  => $pay['description'] . ' - 照片购买',
+            'description'  => $pay['name'] . ' - 照片购买',
             'out_trade_no' => $order_sn,
             'notify_url'   => $this->payment->getConfig()->get('notify_url'),
             'amount'       => [
@@ -75,7 +75,7 @@ class PayService extends Service
     {
         try {
             $order = $this->orderModel->where(['order_sn' => $order_sn])->first();
-            $pay = $this->redis::HGET('venues_pay', $order['venue_id']);
+            $pay = $this->redis::HGET('venues', $order['venue_id']);
             $pay = json_decode($pay, true);
             return $this->payment->getClient()->get('v3/pay/partner/transactions/out-trade-no/' . $order_sn, [
                 'query' => [
@@ -115,7 +115,7 @@ class PayService extends Service
                             'venue_id'  => $info['venue_id'],
                             'user_id'   => $info['user_id'],
                             'order_sn'  => $message['out_trade_no'],
-                            'pay_price' => $data['amount']['total'],
+                            'pay_price' => bcdiv($data['amount']['total'],100,2),
                             'images'    => json_encode($this->moveImage($images, $info)),
                         ];
                         $this->orderInfoModel->table($info['user_id']);

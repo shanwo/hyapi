@@ -19,7 +19,7 @@ class VenueService extends Service
         $venues = $this->redis::HGETALL('venues');
         if (!$venues) {
             if ($this->redis::GET('set_venues')) return [];
-            $venues = $this->venueModel->select('id', 'name', 'image', 'merger_name', 'address')->where(['status' => Service::ENABLE])->get()->toArray();
+            $venues = $this->venueModel->select('id', 'name', 'price', 'image', 'sub_mchid', 'merger_name', 'address')->where(['status' => Service::ENABLE])->get()->toArray();
             foreach ($venues as $k => $v) {
                 $this->redis::HSET('venues', $v['id'], json_encode($v, JSON_UNESCAPED_UNICODE));
             }
