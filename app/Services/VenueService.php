@@ -2,23 +2,26 @@
 
 namespace App\Services;
 
+use App\Models\UploadModel;
 use App\Models\VenueModel;
 
 class VenueService extends Service
 {
     protected $venueModel;
+    protected $uploadModel;
 
     public function __construct()
     {
         parent::__construct();
         $this->venueModel = new VenueModel();
+        $this->uploadModel = new UploadModel();
     }
 
     public function lists()
     {
         $venues = $this->redis::HGETALL('venues');
         if (!$venues) {
-            if ($this->redis::GET('set_venues')) return [];
+            if ($this->redis::EXISTS('set_venues')) return [];
             $venues = $this->venueModel->select('id', 'name', 'price', 'image', 'sub_mchid', 'merger_name', 'address')->where(['status' => Service::ENABLE])->get()->toArray();
             foreach ($venues as $k => $v) {
                 $this->redis::HSET('venues', $v['id'], json_encode($v, JSON_UNESCAPED_UNICODE));
@@ -41,7 +44,9 @@ class VenueService extends Service
         $stop = $start + $this->size - 1;
         $days = $this->redis::LRANGE('venue_days:' . $venueId, $start, $stop);
         $data['page'] = $page;
+        $add = true;
         foreach ($days as $day) {
+            if (date('m-d') == $day) $add = false;
             $total = $remainder = 0;$value = 1;$image = [];
             $count = $this->redis::LLEN('venue_hours:' . $venueId . ':' . $day);
             if ($count && $count < 9) {
@@ -66,6 +71,10 @@ class VenueService extends Service
             ];
             $data['total'] = $this->redis::LLEN('venue_days:' . $venueId);
         }
+        if ($add && $this->redis::EXISTS('set_images')) {
+            $this->setData($venueId);
+            $this->delData($venueId);
+        }
         return $data;
     }
 
@@ -83,5 +92,48 @@ class VenueService extends Service
             $data['lists'][] = json_decode($v, true);
         }
         return $data;
+    }
+
+    private function setData($venueId)
+    {
+        $images = $this->uploadModel->where(['venue_id' => $venueId])->whereDate('created_at', '=', date('Y-m-d'))->get()->toArray();
+        if (!$images) return;
+        $days = array_column($images, 'created_at');
+        $hours = [];
+        array_walk($days, function (&$item) use (&$hours) {
+            $md = substr($item, 5, 8);
+            [$item, $hours[$item][]] = explode(' ', $md);
+        });
+        $days = array_unique($days);
+        foreach ($days as $day) {
+            $this->redis::LPUSH('venue_days:' . $venueId, $day);
+            $hour = array_unique($hours[$day]);
+            foreach ($hour as $h) {
+                $this->redis::LPUSH('venue_hours:' . $venueId . ':' . $day, $h);
+                foreach ($images as $k => $v) {
+                    if (substr($v['created_at'], 5, 8) == $day . ' ' . $h) {
+                        $img = [
+                            'id'  => $v['id'],
+                            'url' => $v['thumbnail_url']
+                        ];
+                        $this->redis::SADD('venue_images:' . $venueId . ':' . $day . ':' . $h, json_encode($img));
+                    }
+                }
+            }
+        }
+        $this->redis::SETEX('set_images', 900, date('Y-m-d H:i:s'));
+    }
+
+    private function delData($venueId)
+    {
+        $del = $this->redis::LRANGE('venue_days:' . $venueId, self::DURATION, -1);
+        foreach ($del as $day) {
+            $hour = $this->redis::LRANGE('venue_hours:' . $venueId . ':' . $day, 0, -1);
+            foreach ($hour as $h) {
+                $this->redis::DEL('venue_images:' . $venueId . ':' . $day . ':' . $h);
+            }
+            $this->redis::DEL('venue_hours:' . $venueId . ':' . $day);
+        }
+        $this->redis::LTRIM('venue_days:' . $venueId, 0, self::DURATION);
     }
 }
