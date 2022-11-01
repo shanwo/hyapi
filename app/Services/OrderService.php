@@ -34,7 +34,7 @@ class OrderService extends Service
             }
         } else {
             $this->orderInfoModel->table($uid);
-            $lists = $this->orderInfoModel->select('id', 'order_sn', 'pay_price', 'images')->where(['user_id' => $uid])->orderBy('id', 'DESC')->get()->toArray();
+            $lists = $this->orderInfoModel->select('id', 'order_sn', 'pay_price', 'images', 'created_at')->where(['user_id' => $uid])->orderBy('id', 'DESC')->get()->toArray();
             foreach ($lists as $k => $v) {
                 $v['images'] = json_decode($v['images'], true);
                 $lists[$k] = $v;
