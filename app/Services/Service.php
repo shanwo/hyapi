@@ -20,6 +20,7 @@ class Service
     const DELETE_NO       = 1;
     const ENABLE          = 1;
     const DISABLE         = -1;
+    const DURATION         = 90;
     public $redis;
     public $page = 1;
     public $size = 5;
