@@ -43,6 +43,7 @@ class VenueService extends Service
         $start = ($page - 1) * $this->size;
         $stop = $start + $this->size - 1;
         $days = $this->redis::LRANGE('venue_days:' . $venueId, $start, $stop);
+        $data['lists'] = [];
         $data['page'] = $page;
         $add = true;
         foreach ($days as $day) {
@@ -71,7 +72,7 @@ class VenueService extends Service
             ];
             $data['total'] = $this->redis::LLEN('venue_days:' . $venueId);
         }
-        if ($add && $this->redis::EXISTS('set_images')) {
+        if ($add && !$this->redis::EXISTS('set_images')) {
             $this->setData($venueId);
             $this->delData($venueId);
         }
