@@ -26,7 +26,6 @@ class VenueService extends Service
             foreach ($venues as $k => $v) {
                 $this->redis::HSET('venues', $v['id'], json_encode($v, JSON_UNESCAPED_UNICODE));
             }
-
             $this->redis::SETEX('set_venues', 30, date('Y-m-d H:i:s'));
         } else {
             foreach ($venues as $k => $v) {
