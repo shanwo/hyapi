@@ -31,6 +31,7 @@ class PayService extends Service
     public function send($request)
     {
         $ids = $request->input('ids');
+        $ids = array_filter(array_unique($ids));
         $vid = $request->input('venue_id');
         $pay = $this->redis::HGET('venues', $vid);
         $pay = json_decode($pay, true);
