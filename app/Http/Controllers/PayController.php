@@ -27,7 +27,7 @@ class PayController extends Controller
             'ids'      => 'required|array',
         ], [
             'venue_id' => '场地ID',
-            'ids'      => 'ID',
+            'ids'      => 'IDs',
         ]);
         if ($this->msg) {
             return $this->returnApi();
