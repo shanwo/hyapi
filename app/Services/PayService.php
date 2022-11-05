@@ -17,7 +17,11 @@ class PayService extends Service
     public function __construct()
     {
         parent::__construct();
-        $config = $this->redis::GET('config:partner');
+        if (!strcmp(app('env'), 'prod')) {
+            $config = $this->redis::GET('config:partner');
+        } else {
+            $config = $this->redis::GET('config:partner-test');
+        }
         if ($config) {
             $config = json_decode($config, true);
             $config['private_key'] = env('PRIVATE_KEY');
@@ -111,12 +115,12 @@ class PayService extends Service
                             'snapshot'   => json_encode($message, JSON_UNESCAPED_UNICODE),
                         ]);
                         $images = (new UploadModel())->select('name', 'original_url', 'thumbnail_url')
-                            ->whereIn('id', json_decode($info['original_ids'],true))->get()->toArray();
+                            ->whereIn('id', json_decode($info['original_ids'], true))->get()->toArray();
                         $order = [
                             'venue_id'  => $info['venue_id'],
                             'user_id'   => $info['user_id'],
                             'order_sn'  => $message['out_trade_no'],
-                            'pay_price' => bcdiv($data['amount']['total'],100,2),
+                            'pay_price' => bcdiv($data['amount']['total'], 100, 2),
                             'images'    => json_encode($this->moveImage($images, $info)),
                         ];
                         $this->orderInfoModel->table($info['user_id']);
