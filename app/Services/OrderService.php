@@ -30,7 +30,7 @@ class OrderService extends Service
             $stop = $start + $this->size - 1;
             $orders = $this->redis::LRANGE('order_info:' . $uid, $start, $stop);
             foreach ($orders as $k => $v) {
-                $data['lists'] = json_decode($v, true);
+                $data['lists'][] = json_decode($v, true);
             }
         } else {
             $this->orderInfoModel->table($uid);
