@@ -99,7 +99,7 @@ class VenueService extends Service
         $venueId = $request->input('venue_id');
         $id = $request->input('id');
         $image = $this->uploadModel->where(['venue_id' => $venueId])->whereKey($id)->first();
-        return json_decode($image['exif'], true);
+        return json_decode($image['exif'], true) ?? [];
     }
 
     private function setData($venueId)
