@@ -94,6 +94,14 @@ class VenueService extends Service
         return $data;
     }
 
+    public function exif($request)
+    {
+        $venueId = $request->input('venue_id');
+        $id = $request->input('id');
+        $image = $this->uploadModel->where(['venue_id' => $venueId])->whereKey($id)->first();
+        return json_decode($image['exif'], true);
+    }
+
     private function setData($venueId)
     {
         $images = $this->uploadModel->where(['venue_id' => $venueId])->whereDate('created_at', '=', date('Y-m-d'))->get()->toArray();

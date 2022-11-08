@@ -21,6 +21,7 @@ Route::prefix('hy')->group(function () {
         Route::get('lists', 'VenueController@lists');
         Route::get('day', 'VenueController@day');
         Route::get('hour', 'VenueController@hour');
+        Route::get('exif', 'VenueController@exif');
     });
     //支付
     Route::prefix('pay')->group(function () {

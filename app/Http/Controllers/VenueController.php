@@ -65,4 +65,21 @@ class VenueController extends Controller
         $this->code = 200;
         return $this->returnApi($data);
     }
+
+    public function exif()
+    {
+        $this->validate([
+            'venue_id' => 'required|integer|gt:0|exists:hy_venue,id',
+            'id'       => 'required|integer|gt:0|exists:hy_upload,id',
+        ], [
+            'venue_id' => '场地ID',
+            'id'       => '照片ID',
+        ]);
+        if ($this->msg) {
+            return $this->returnApi();
+        }
+        $data = $this->venueService->exif($this->request);
+        $this->code = 200;
+        return $this->returnApi($data);
+    }
 }
