@@ -34,8 +34,17 @@ class OrderService extends Service
             }
         } else {
             $this->orderInfoModel->table($uid);
-            $lists = $this->orderInfoModel->select('id', 'order_sn', 'pay_price', 'images', 'created_at')->where(['user_id' => $uid])->orderBy('id', 'DESC')->get()->toArray();
+            $lists = $this->orderInfoModel->select('id', 'venue_id', 'order_sn', 'pay_price', 'images', 'created_at')->where(['user_id' => $uid])->orderBy('id', 'DESC')->get()->toArray();
+            $venues = $this->redis::HGETAll('venues');
+            foreach ($venues as $k => $v) {
+                $v = json_decode($v, true);
+                unset($v['price']);
+                unset($v['image']);
+                unset($v['sub_mchid']);
+                $venues[$v['id']] = $v;
+            }
             foreach ($lists as $k => $v) {
+                $v['venue'] = $venues[$v['venue_id']];
                 $v['images'] = json_decode($v['images'], true);
                 $lists[$k] = $v;
                 $this->redis::RPUSH('order_info:' . $uid, json_encode($v, JSON_UNESCAPED_UNICODE));
