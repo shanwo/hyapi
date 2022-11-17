@@ -17,9 +17,8 @@ class PayService extends Service
     public function __construct()
     {
         parent::__construct();
-        if (!strcmp(app('env'), 'prod')) {
-            $config = $this->redis::GET('config:partner');
-        } else {
+        $config = $this->redis::GET('config:partner');
+        if (strcmp(app('env'), 'prod')) {
             $config = $this->redis::GET('config:partner-test');
         }
         if ($config) {
@@ -171,6 +170,9 @@ class PayService extends Service
     private function moveImage($images, $order)
     {
         $config = $this->redis::GET('config:cos');
+        if (strcmp(app('env'), 'prod')) {
+            $config = $this->redis::GET('config:cos-test');
+        }
         $config = json_decode($config, true);
         $cos = new Client([
             'region'      => 'ap-beijing',

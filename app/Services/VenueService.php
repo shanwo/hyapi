@@ -73,7 +73,6 @@ class VenueService extends Service
         }
         if ($add && !$this->redis::EXISTS('set_images')) {
             $this->setData($venueId);
-            $this->delData($venueId);
         }
         return $data;
     }
@@ -130,18 +129,5 @@ class VenueService extends Service
             }
         }
         $this->redis::SETEX('set_images', 900, date('Y-m-d H:i:s'));
-    }
-
-    private function delData($venueId)
-    {
-        $del = $this->redis::LRANGE('venue_days:' . $venueId, self::DURATION, -1);
-        foreach ($del as $day) {
-            $hour = $this->redis::LRANGE('venue_hours:' . $venueId . ':' . $day, 0, -1);
-            foreach ($hour as $h) {
-                $this->redis::DEL('venue_images:' . $venueId . ':' . $day . ':' . $h);
-            }
-            $this->redis::DEL('venue_hours:' . $venueId . ':' . $day);
-        }
-        $this->redis::LTRIM('venue_days:' . $venueId, 0, self::DURATION);
     }
 }
