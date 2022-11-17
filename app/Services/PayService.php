@@ -131,7 +131,7 @@ class PayService extends Service
                             'transaction_id' => $data['transaction_id'],     //商户订单号
                             'out_refund_no'  => $data['out_trade_no'],       //商户退款单号
                             'reason'         => '订单支付超时',                //退款原因
-                            'notify_url'     => env('APP_URL') . 'hy/pay/refund',
+                            'notify_url'     => env('APP_URL') . '/hy/pay/refund',
                             'amount'         => [
                                 'refund'   => $data['amount']['payer_total'],//退款金额
                                 'total'    => $data['amount']['total'],      //原订单金额
@@ -197,8 +197,8 @@ class PayService extends Service
             );
             $res[] = [
                 'name'          => $v['name'],
-                'original_url'  => $host . $original['Key'],
-                'thumbnail_url' => $host . $thumbnail['Key'],
+                'original_url'  => $host .'/'. $original['Key'],
+                'thumbnail_url' => $host .'/'. $thumbnail['Key'],
 
             ];
         }
