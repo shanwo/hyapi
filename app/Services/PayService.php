@@ -182,7 +182,7 @@ class PayService extends Service
                 'secretKey' => $config['secret'],
             ]
         ]);
-        $host = 'https://cdn.shanwo.cc/';
+        $host = env('APP_CDN');
         $res = [];
         foreach ($images as $k => $v) {
             $original = $cos->Copy($config['target_bucket'],
