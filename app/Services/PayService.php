@@ -39,7 +39,7 @@ class PayService extends Service
         $pay = $this->redis::HGET('venues', $vid);
         $pay = json_decode($pay, true);
         $uid = $request->user()->id;
-        $third = array_column($request->user()->third, 'open_id', 'source') ?? [];
+        $third = array_column($request->user()->third, 'open_id', 'app_id') ?? [];
         $order_sn = dechex(time()) . rand(10, 99) . mb_substr(sprintf("%04d", $uid), -4) . rand(10, 99);
         $body = [
             'sp_appid'     => $this->payment->getConfig()->get('app_id'),
@@ -52,7 +52,7 @@ class PayService extends Service
                 'total' => (int)bcmul(count($ids), $pay['price'])
             ],
             'payer'        => [
-                'sp_openid' => $third['wxapp'] ?? '',   //用户在服务商appid下的唯一标识。下单前需获取到用户的Openid
+                'sp_openid' => $third[$this->payment->getConfig()->get('app_id')] ?? '',   //用户在服务商appid下的唯一标识。下单前需获取到用户的Openid
             ]
         ];
         try {
