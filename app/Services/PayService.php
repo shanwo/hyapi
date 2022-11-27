@@ -146,7 +146,7 @@ class PayService extends Service
                 }
                 return true;
             })->serve();
-        } catch (\ErrorException $error) {
+        } catch (\Exception $error) {
             $this->redis::SETEX('callback:payment:' . LARAVEL_START . ':error', $this->oneDay / 2, $error->getMessage());
             return false;
         }
@@ -160,8 +160,8 @@ class PayService extends Service
                 $info = $this->orderModel->where(['order_sn' => $message['out_trade_no']])->first();
                 $this->orderModel->whereKey($info['id'])->update(['status' => OrderService::ORDER_REFUND]);
                 return true;
-            });
-        } catch (\ErrorException $error) {
+            })->serve();
+        } catch (\Exception $error) {
             $this->redis::SETEX('callback:refund:' . LARAVEL_START . ':error', $this->oneDay / 2, $error->getMessage());
             return false;
         }
