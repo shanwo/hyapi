@@ -120,8 +120,9 @@ class VenueService extends Service
                 foreach ($images as $k => $v) {
                     if (substr($v['created_at'], 5, 8) == $day . ' ' . $h) {
                         $img = [
-                            'id'  => $v['id'],
-                            'url' => $v['thumbnail_url']
+                            'id'   => $v['id'],
+                            'name' => $v['name'],
+                            'url'  => $v['thumbnail_url']
                         ];
                         $this->redis::SADD('venue_images:' . $venueId . ':' . $day . ':' . $h, json_encode($img));
                     }
