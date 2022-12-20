@@ -48,8 +48,7 @@ class VenueService extends Service
         foreach ($days as $day) {
             $rKey = $venueId . ':' . $day;
             if (date('m-d') == $day) $add = false;
-            $total = $remainder = 0;
-            $value = 1;
+            $total = $remainder = $value = 0;
             $image = [];
             $count = $this->redis::LLEN('venue_hours:' . $rKey);
             if ($count && $count < 9) {
@@ -64,7 +63,7 @@ class VenueService extends Service
                 $num = $value;
                 if ($remainder && !$key) $num += $remainder;
                 $rand = rand(0,$size - $num);
-                $res = $this->redis::ZREVRANGE('venue_images:' . $rKey . ':' . $hour, $rand, $rand + $num);
+                $res = $this->redis::ZREVRANGE('venue_images:' . $rKey . ':' . $hour, $rand, ($rand + $num - 1));
                 foreach ($res as $k => $v) {
                     $image[] = json_decode($v, true);
                 }
@@ -95,7 +94,7 @@ class VenueService extends Service
         $page = $request->input('page', $this->page);
         $start = ($page - 1) * $this->size;
         $stop = $start + $this->size - 1;
-        $res = $this->redis::ZREVRANGE('venue_images:' . $rKey . ':' . $hour, $start, $stop, true);
+        $res = $this->redis::ZREVRANGE('venue_images:' . $rKey . ':' . $hour, $start, $stop);
         foreach ($res as $k => $v) {
             $data['lists'][] = json_decode($v, true);
         }
