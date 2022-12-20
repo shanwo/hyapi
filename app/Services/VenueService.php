@@ -82,11 +82,15 @@ class VenueService extends Service
         $venueId = $request->input('venue_id');
         $day = $request->input('day');
         $hour = $request->input('hour', 0);
-        if (!$hour) $hour = $this->redis::LINDEX('venue_hours:' . $venueId . ':' . $day, 0);
+        $rKey = $venueId . ':' . $day;
+        if (!$hour) $hour = $this->redis::LINDEX('venue_hours:' . $rKey, 0);
         $data['lists'] = [];
-        $data['hours'] = $this->redis::LRANGE('venue_hours:' . $venueId . ':' . $day, 0, -1);
+        $data['hours'] = $this->redis::LRANGE('venue_hours:' . $rKey, 0, -1);
         $data['now'] = $hour;
-        $res = $this->redis::SRANDMEMBER('venue_images:' . $venueId . ':' . $day . ':' . $hour, $this->size * 2);
+        $page = $request->input('page', $this->page);
+        $start = ($page - 1) * $this->size;
+        $stop = $start + $this->size - 1;
+        $res = $this->redis::ZREVRANGE('venue_images:' . $rKey . ':' . $hour, $start, $stop, true);
         foreach ($res as $k => $v) {
             $data['lists'][] = json_decode($v, true);
         }
