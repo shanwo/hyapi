@@ -113,30 +113,33 @@ class VenueService extends Service
     {
         $images = $this->uploadModel->where(['venue_id' => $venueId])->whereDate('created_at', '=', date('Y-m-d'))->get()->toArray();
         if (!$images) return;
-        $days = array_column($images, 'created_at');
-        $hours = [];
-        array_walk($days, function (&$item) use (&$hours) {
-            $md = substr($item, 5, 8);
-            [$item, $hours[$item][]] = explode(' ', $md);
-        });
-        $days = array_unique($days);
-        foreach ($days as $day) {
-            $this->redis::LPUSH('venue_days:' . $venueId, $day);
-            $hour = array_unique($hours[$day]);
-            foreach ($hour as $h) {
-                $this->redis::LPUSH('venue_hours:' . $venueId . ':' . $day, $h);
-                foreach ($images as $k => $v) {
-                    if (substr($v['created_at'], 5, 8) == $day . ' ' . $h) {
-                        $img = [
-                            'id'   => $v['id'],
-                            'name' => $v['name'],
-                            'url'  => $v['thumbnail_url']
-                        ];
-                        $this->redis::SADD('venue_images:' . $venueId . ':' . $day . ':' . $h, json_encode($img));
-                    }
+        foreach ($images as $k => $v) {
+            [$day, $hour, $score] = $this->score($v['created_at']);
+            $rKey = $venueId . ':' . $day;
+            if (!$this->redis::EXISTS('venue_images:' . $rKey . ':' . $hour)) {
+                $hours = $this->redis::LRANGE('venue_hours:' . $rKey, 0, -1);
+                if (!in_array($hour, $hours)) {
+                    $this->redis::LPUSH('venue_hours:' . $rKey, $hour);
+                    $days = $this->redis::LRANGE('venue_days:' . $venueId, 0, -1);
+                    if (!in_array($day, $days)) $this->redis::LPUSH('venue_days:' . $venueId, $day);
                 }
             }
+            $img = [
+                'id'   => $v['id'],
+                'name' => $v['name'],
+                'url'  => $v['thumbnail_url']
+            ];
+            $this->redis::ZADD('venue_images:' . $rKey . ':' . $hour, $score, json_encode($img));
         }
         $this->redis::SETEX('set_images', 900, date('Y-m-d H:i:s'));
+    }
+
+    private function score($created)
+    {
+        $md = substr($created, 5);
+        [$day, $time] = explode(' ', $md);
+        [$hour, $minute, $second] = explode(':', $time);
+        $score = bcadd(bcmul($minute, 60), $second);
+        return [$day, $hour, $score];
     }
 }
