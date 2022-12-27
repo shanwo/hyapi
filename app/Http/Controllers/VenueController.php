@@ -50,11 +50,13 @@ class VenueController extends Controller
             'day'      => 'required|date_format:m-d',
             'hour'     => 'nullable|date_format:H',
             'page'     => 'required|integer|gt:0',
+            'size'     => 'required|integer|between:10,50',
         ], [
             'venue_id' => '场地ID',
             'day'      => '日期',
             'hour'     => '时间',
             'page'     => '页码',
+            'size'     => '页码',
         ]);
         if ($this->msg) {
             return $this->returnApi();

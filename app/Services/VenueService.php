@@ -92,8 +92,9 @@ class VenueService extends Service
         $data['hours'] = $this->redis::LRANGE('venue_hours:' . $rKey, 0, -1);
         $data['now'] = $hour;
         $page = $request->input('page', $this->page);
-        $start = ($page - 1) * $this->size;
-        $stop = $start + $this->size - 1;
+        $size = $request->input('size', $this->size);
+        $start = ($page - 1) * $size;
+        $stop = $start + $size - 1;
         $res = $this->redis::ZREVRANGE('venue_images:' . $rKey . ':' . $hour, $start, $stop);
         foreach ($res as $k => $v) {
             $data['lists'][] = json_decode($v, true);

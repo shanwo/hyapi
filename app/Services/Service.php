@@ -22,7 +22,7 @@ class Service
     const DISABLE         = -1;
     public $redis;
     public $page = 1;
-    public $size = 5;
+    public $size = 10;
     public $oneDay = 86400;
 
     public function __construct()
