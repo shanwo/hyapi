@@ -60,10 +60,20 @@ class VenueService extends Service
                 $size = $this->redis::ZCARD('venue_images:' . $rKey . ':' . $hour);
                 $total += $size;
                 if ($key >= 9) continue;
-                $num = $value;
-                if ($remainder && !$key) $num += $remainder;
-                $rand = rand(0,$size - $num);
-                $res = $this->redis::ZREVRANGE('venue_images:' . $rKey . ':' . $hour, $rand, ($rand + $num - 1));
+                if ($size <= $value) {
+                    $start = 0;
+                    $end = -1;
+                } else {
+                    $num = $value;
+                    if (!$key && $remainder) $num = $value + $remainder;
+                    if (!$num) {
+                        $start = $end = rand(0, $size);
+                    } else {
+                        $start = rand(0, $size - $num);
+                        $end = $start + $num - 1;
+                    }
+                }
+                $res = $this->redis::ZREVRANGE('venue_images:' . $rKey . ':' . $hour, $start, $end);
                 foreach ($res as $k => $v) {
                     $image[] = json_decode($v, true);
                 }
