@@ -56,7 +56,7 @@ class VenueController extends Controller
             'day'      => '日期',
             'hour'     => '时间',
             'page'     => '页码',
-            'size'     => '页码',
+            'size'     => '条数',
         ]);
         if ($this->msg) {
             return $this->returnApi();
