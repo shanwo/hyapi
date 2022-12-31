@@ -8,6 +8,11 @@ use Illuminate\Support\Facades\Schema;
 
 class OrderInfoModel extends Model
 {
+    const ORDER_CREATE = 10;
+    const ORDER_CANCEL = 20;
+    const ORDER_SUCCESS= 30;
+    const ORDER_FAIL   = 40;
+    const ORDER_REFUND = 50;
     protected $table = 'hy_order_info';
     public $timestamps = false;
 
