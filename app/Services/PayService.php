@@ -66,7 +66,7 @@ class PayService extends Service
                 'original_ids' => json_encode($ids),
                 'price'        => $pay['price'],
                 'pay_price'    => $body['amount']['total'],
-                'status'       => self::ORDER_CREATE
+                'status'       => $this->orderInfoModel::ORDER_CREATE
             ];
             $this->orderModel->insertGetId($insert);
             return $data;
@@ -106,10 +106,10 @@ class PayService extends Service
                 $this->redis::SETEX('callback:payment:' . LARAVEL_START . ':data', $this->oneDay / 2, json_encode($data));
                 if ($data['trade_state'] == 'SUCCESS') {
                     $info = $this->orderModel->where(['order_sn' => $message['out_trade_no']])->first();
-                    if ($info && $info['status'] == OrderService::ORDER_CREATE) {
+                    if ($info && $info['status'] == $this->orderInfoModel::ORDER_CREATE) {
                         $this->orderModel->whereKey($info['id'])->update([
                             'third_sn'   => $data['transaction_id'],
-                            'status'     => OrderService::ORDER_SUCCESS,
+                            'status'     => $this->orderInfoModel::ORDER_SUCCESS,
                             'payated_at' => date('Y-m-d H:i:s', strtotime($data['success_time'])),
                             'snapshot'   => json_encode($message, JSON_UNESCAPED_UNICODE),
                         ]);
@@ -141,7 +141,7 @@ class PayService extends Service
                         $this->payment->getClient()->postJson('v3/pay/partner/transactions/out-trade-no/' . $data['out_trade_no'] . '/close', [
                             'sp_mchid' => $this->payment->getConfig()->get('mch_id'), 'sub_mchid' => $message['sub_mchid']
                         ])->toArray();
-                        $this->orderModel->whereKey($info['id'])->update(['status' => OrderService::ORDER_FAIL]);
+                        $this->orderModel->whereKey($info['id'])->update(['status' => $this->orderInfoModel::ORDER_FAIL]);
                     }
                 }
                 return true;
@@ -158,7 +158,7 @@ class PayService extends Service
         try {
             return $this->payment->getServer()->handleRefunded(function ($message) {
                 $info = $this->orderModel->where(['order_sn' => $message['out_trade_no']])->first();
-                $this->orderModel->whereKey($info['id'])->update(['status' => OrderService::ORDER_REFUND]);
+                $this->orderModel->whereKey($info['id'])->update(['status' => $this->orderInfoModel::ORDER_REFUND]);
                 return true;
             })->serve();
         } catch (\Exception $error) {
