@@ -68,7 +68,7 @@ class Controller extends BaseController
             'uuid'    => Uuid::uuid6(),
         ];
         \Illuminate\Support\Facades\DB::disconnect('mysql');
-        $this->service->redis::SETEX('hyApiReturnLog:'. $result['uuid'], $this->service::ONEDAY * 7, json_encode($result,JSON_UNESCAPED_UNICODE));
+        $this->service->redis::SETEX('hyApiReturnLog' . date(':Y-m:d:') . $result['uuid'], $this->service::ONEDAY * 7, json_encode($result, JSON_UNESCAPED_UNICODE));
         unset($result['request']);
         return response()->json($result);
     }
