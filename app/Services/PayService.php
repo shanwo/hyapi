@@ -94,7 +94,7 @@ class PayService extends Service
 
     public function payment($request)
     {
-        $this->redis::SETEX('callback:payment:' . LARAVEL_START . ':request', $this->oneDay / 2, json_encode($request->all()));
+        $this->redis::SETEX('callback:payment:' . LARAVEL_START . ':request', self::ONEDAY / 2, json_encode($request->all()));
         try {
             return $this->payment->getServer()->handlePaid(function ($message, $fail) {
                 $data = $this->payment->getClient()->get('v3/pay/partner/transactions/out-trade-no/' . $message['out_trade_no'], [
@@ -103,7 +103,7 @@ class PayService extends Service
                         'sub_mchid' => $message['sub_mchid']
                     ]
                 ])->toArray();
-                $this->redis::SETEX('callback:payment:' . LARAVEL_START . ':data', $this->oneDay / 2, json_encode($data));
+                $this->redis::SETEX('callback:payment:' . LARAVEL_START . ':data', self::ONEDAY / 2, json_encode($data));
                 if ($data['trade_state'] == 'SUCCESS') {
                     $info = $this->orderModel->where(['order_sn' => $message['out_trade_no']])->first();
                     if ($info && $info['status'] == $this->orderInfoModel::ORDER_CREATE) {
@@ -147,14 +147,14 @@ class PayService extends Service
                 return true;
             })->serve();
         } catch (\Exception $error) {
-            $this->redis::SETEX('callback:payment:' . LARAVEL_START . ':error', $this->oneDay / 2, $error->getMessage());
+            $this->redis::SETEX('callback:payment:' . LARAVEL_START . ':error', self::ONEDAY / 2, $error->getMessage());
             return false;
         }
     }
 
     public function refund($request)
     {
-        $this->redis::SETEX('callback:refund:' . LARAVEL_START . ':request', $this->oneDay / 2, json_encode($request->all()));
+        $this->redis::SETEX('callback:refund:' . LARAVEL_START . ':request', self::ONEDAY / 2, json_encode($request->all()));
         try {
             return $this->payment->getServer()->handleRefunded(function ($message) {
                 $info = $this->orderModel->where(['order_sn' => $message['out_trade_no']])->first();
@@ -162,7 +162,7 @@ class PayService extends Service
                 return true;
             })->serve();
         } catch (\Exception $error) {
-            $this->redis::SETEX('callback:refund:' . LARAVEL_START . ':error', $this->oneDay / 2, $error->getMessage());
+            $this->redis::SETEX('callback:refund:' . LARAVEL_START . ':error', self::ONEDAY / 2, $error->getMessage());
             return false;
         }
     }
