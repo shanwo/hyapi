@@ -70,7 +70,7 @@ class Controller extends BaseController
         \Illuminate\Support\Facades\DB::disconnect('mysql');
         $this->service->redis::SELECT(3);
         $key = app('env') .':hyApiReturnLog:' . date('Y-m:d:') . $result['uuid'];
-        $this->service->redis::SETEX($key, $this->service::ONEDAY * 7, json_encode($result, JSON_UNESCAPED_UNICODE));
+        $this->service->redis::SETEX($key, $this->service::ONEDAY * 30, json_encode($result, JSON_UNESCAPED_UNICODE));
         unset($result['request']);
         return response()->json($result);
     }
