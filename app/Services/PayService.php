@@ -94,6 +94,8 @@ class PayService extends Service
 
     public function payment($request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '-1');
         $this->redis::SETEX('callback:payment:' . LARAVEL_START . ':request', self::ONEDAY * 7, json_encode($request->all()));
         try {
             return $this->payment->getServer()->handlePaid(function ($message, $fail) {
@@ -106,31 +108,33 @@ class PayService extends Service
                 $this->redis::SETEX('callback:payment:' . LARAVEL_START . ':data', self::ONEDAY * 7, json_encode($data));
                 if ($data['trade_state'] == 'SUCCESS') {
                     $info = $this->orderModel->where(['order_sn' => $message['out_trade_no']])->first();
-                    if ($info && $info['status'] == $this->orderInfoModel::ORDER_CREATE) {
-                        $this->orderModel->whereKey($info['id'])->update([
-                            'third_sn'   => $data['transaction_id'],
-                            'status'     => $this->orderInfoModel::ORDER_SUCCESS,
-                            'payated_at' => date('Y-m-d H:i:s', strtotime($data['success_time'])),
-                            'snapshot'   => json_encode($message, JSON_UNESCAPED_UNICODE),
-                        ]);
-                        $images = (new UploadModel())->select('name', 'original_url', 'thumbnail_url')
-                            ->whereIn('id', json_decode($info['original_ids'], true))->get()->toArray();
-                        $order = [
-                            'venue_id'  => $info['venue_id'],
-                            'user_id'   => $info['user_id'],
-                            'order_sn'  => $message['out_trade_no'],
-                            'pay_price' => bcdiv($data['amount']['total'], 100, 2),
-                            'images'    => json_encode($this->moveImage($images, $info)),
-                        ];
-                        $this->orderInfoModel->table($info['user_id']);
-                        $this->orderInfoModel->insertGetId($order);
-                        $this->redis::DEL('order_info:' . $info['user_id']);
+                    if ($info) {
+                        if ($info['status'] == $this->orderInfoModel::ORDER_CREATE) {
+                            $this->orderModel->whereKey($info['id'])->update([
+                                'third_sn'   => $data['transaction_id'],
+                                'status'     => $this->orderInfoModel::ORDER_SUCCESS,
+                                'payated_at' => date('Y-m-d H:i:s', strtotime($data['success_time'])),
+                                'snapshot'   => json_encode($message, JSON_UNESCAPED_UNICODE),
+                            ]);
+                            $images = (new UploadModel())->select('name', 'original_url', 'thumbnail_url')
+                                ->whereIn('id', json_decode($info['original_ids'], true))->get()->toArray();
+                            $order = [
+                                'venue_id'  => $info['venue_id'],
+                                'user_id'   => $info['user_id'],
+                                'order_sn'  => $message['out_trade_no'],
+                                'pay_price' => bcdiv($data['amount']['total'], 100, 2),
+                                'images'    => json_encode($this->moveImage($images, $info)),
+                            ];
+                            $this->orderInfoModel->table($info['user_id']);
+                            $this->orderInfoModel->insertGetId($order);
+                            $this->redis::DEL('order_info:' . $info['user_id']);
+                        }
                     } else {
                         $this->payment->getClient()->postJson('v3/refund/domestic/refunds', [
                             'sub_mchid'      => $data['sub_mchid'],
                             'transaction_id' => $data['transaction_id'],     //商户订单号
                             'out_refund_no'  => $data['out_trade_no'],       //商户退款单号
-                            'reason'         => '订单支付超时',                //退款原因
+                            'reason'         => '订单支付超时 - 未查询到订单信息',//退款原因
                             'notify_url'     => env('APP_URL') . '/hy/pay/refund',
                             'amount'         => [
                                 'refund'   => $data['amount']['payer_total'],//退款金额
@@ -154,13 +158,37 @@ class PayService extends Service
 
     public function refund($request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '-1');
         $this->redis::SETEX('callback:refund:' . LARAVEL_START . ':request', self::ONEDAY * 7, json_encode($request->all()));
         try {
             return $this->payment->getServer()->handleRefunded(function ($message) {
                 $info = $this->orderModel->where(['order_sn' => $message['out_trade_no']])->first();
                 $this->orderModel->whereKey($info['id'])->update(['status' => $this->orderInfoModel::ORDER_REFUND]);
                 $this->orderInfoModel->table($info['user_id']);
+                $userOrder = $this->orderInfoModel->where(['order_sn' => $message['out_trade_no']])->first();
                 $this->orderInfoModel->where(['order_sn' => $message['out_trade_no']])->delete();
+                $this->redis::DEL('order_info:' . $info['user_id']);
+                $objects = [];
+                $images = json_decode($userOrder['images'], true);
+                foreach ($images as $k => $v) {
+                    $objects[] = ['Key' => substr(parse_url($v['original_url'], PHP_URL_PATH), 1)];
+                    $objects[] = ['Key' => substr(parse_url($v['thumbnail_url'], PHP_URL_PATH), 1)];
+                }
+                $config = $this->redis::GET('config:cos');
+                if (strcmp(app('env'), 'prod')) {
+                    $config = $this->redis::GET('config:cos-test');
+                }
+                $config = json_decode($config, true);
+                $cos = new Client([
+                    'region'      => 'ap-beijing',
+                    'schema'      => 'https',
+                    'credentials' => [
+                        'secretId'  => $config['app_id'],
+                        'secretKey' => $config['secret'],
+                    ]
+                ]);
+                $cos->DeleteObjects(['Bucket' => $config['target_bucket'], 'Objects' => $objects]);
                 return true;
             })->serve();
         } catch (\Exception $error) {
@@ -199,8 +227,8 @@ class PayService extends Service
             );
             $res[] = [
                 'name'          => $v['name'],
-                'original_url'  => $host .'/'. $original['Key'],
-                'thumbnail_url' => $host .'/'. $thumbnail['Key'],
+                'original_url'  => $host . '/' . $original['Key'],
+                'thumbnail_url' => $host . '/' . $thumbnail['Key'],
 
             ];
         }
