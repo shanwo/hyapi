@@ -97,9 +97,10 @@ class VenueService extends Service
         $day = $request->input('day');
         $hour = $request->input('hour', 0);
         $rKey = $venueId . ':' . $day;
-        if (!$hour) $hour = $this->redis::LINDEX('venue_hours:' . $rKey, 0);
         $data['lists'] = [];
         $data['hours'] = $this->redis::LRANGE('venue_hours:' . $rKey, 0, -1);
+        rsort($data['hours']);
+        if (!$hour) $hour = reset($data['hours']);
         $data['now'] = $hour;
         $page = $request->input('page', $this->page);
         $size = $request->input('size', $this->size);
